@@ -11,6 +11,7 @@ import {
 	ShaderMaterial,
 	WebGLRenderTarget,
 } from 'three';
+import { renderableFloatType } from './renderableFloatType.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import * as CommonGLSL from '../shader/common/index.js';
 
@@ -99,7 +100,7 @@ export class CubeToEquirectGenerator {
 		}
 
 		const target = new WebGLRenderTarget( width, height, {
-			type: FloatType,
+			type: renderableFloatType( renderer ),
 			colorSpace: image.colorSpace,
 		} );
 
@@ -126,16 +127,25 @@ export class CubeToEquirectGenerator {
 		renderer.autoClear = currentAutoClear;
 
 		// read the data back
+		// a half float target reads back as half floats already
 		const buffer = new Uint16Array( width * height * 4 );
-		const readBuffer = new Float32Array( width * height * 4 );
-		renderer.readRenderTargetPixels( target, 0, 0, width, height, readBuffer );
-		target.dispose();
+		if ( target.texture.type === HalfFloatType ) {
 
-		for ( let i = 0, l = readBuffer.length; i < l; i ++ ) {
+			renderer.readRenderTargetPixels( target, 0, 0, width, height, buffer );
 
-			buffer[ i ] = DataUtils.toHalfFloat( readBuffer[ i ] );
+		} else {
+
+			const readBuffer = new Float32Array( width * height * 4 );
+			renderer.readRenderTargetPixels( target, 0, 0, width, height, readBuffer );
+			for ( let i = 0, l = readBuffer.length; i < l; i ++ ) {
+
+				buffer[ i ] = DataUtils.toHalfFloat( readBuffer[ i ] );
+
+			}
 
 		}
+
+		target.dispose();
 
 		// produce the data texture
 		const result = new DataTexture( buffer, width, height, RGBAFormat, HalfFloatType );

@@ -1,4 +1,5 @@
 import { WebGLRenderTarget, RGBAFormat, HalfFloatType, PMREMGenerator, DataTexture, EquirectangularReflectionMapping, FloatType, DataUtils } from 'three';
+import { renderableFloatType } from './renderableFloatType.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MaterialBase } from '../materials/MaterialBase.js';
 import * as CommonGLSL from '../shader/common/index.js';
@@ -58,7 +59,7 @@ export class BlurredEnvMapGenerator {
 		this.renderer = renderer;
 		this.pmremGenerator = new PMREMGenerator( renderer );
 		this.copyQuad = new FullScreenQuad( new PMREMCopyMaterial() );
-		this.renderTarget = new WebGLRenderTarget( 1, 1, { type: FloatType, format: RGBAFormat } );
+		this.renderTarget = new WebGLRenderTarget( 1, 1, { type: renderableFloatType( renderer ), format: RGBAFormat } );
 
 	}
 
@@ -95,13 +96,21 @@ export class BlurredEnvMapGenerator {
 		renderer.autoClear = prevClear;
 
 		// read the data back
+		// a half float target reads back as half floats already
 		const buffer = new Uint16Array( width * height * 4 );
-		const readBuffer = new Float32Array( width * height * 4 );
-		renderer.readRenderTargetPixels( renderTarget, 0, 0, width, height, readBuffer );
+		if ( renderTarget.texture.type === HalfFloatType ) {
 
-		for ( let i = 0, l = readBuffer.length; i < l; i ++ ) {
+			renderer.readRenderTargetPixels( renderTarget, 0, 0, width, height, buffer );
 
-			buffer[ i ] = DataUtils.toHalfFloat( readBuffer[ i ] );
+		} else {
+
+			const readBuffer = new Float32Array( width * height * 4 );
+			renderer.readRenderTargetPixels( renderTarget, 0, 0, width, height, readBuffer );
+			for ( let i = 0, l = readBuffer.length; i < l; i ++ ) {
+
+				buffer[ i ] = DataUtils.toHalfFloat( readBuffer[ i ] );
+
+			}
 
 		}
 
