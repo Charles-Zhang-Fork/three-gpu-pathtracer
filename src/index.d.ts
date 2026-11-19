@@ -1,4 +1,5 @@
 import {
+	TextureDataType,
 	DataTexture,
 	RectAreaLight,
 	ShaderMaterial,
@@ -107,6 +108,11 @@ export class DynamicPathTracingSceneGenerator extends PathTracingSceneGenerator 
  */
 export class PathTracingSceneWorker extends PathTracingSceneGenerator {}
 
+/** 32-bit floats where the renderer can draw into them, else 16-bit: what the path tracer adds its samples up in. */
+export function renderableFloatType( renderer: WebGLRenderer ): TextureDataType;
+/** Whether the renderer can draw into floating-point images of either size, which path tracing needs. */
+export function canRenderFloat( renderer: WebGLRenderer ): boolean;
+
 export class WebGLPathTracer {
 
 	constructor( renderer: WebGLRenderer );
@@ -118,6 +124,9 @@ export class WebGLPathTracer {
 	readonly scene: Scene | null;
 
 	multipleImportanceSampling: boolean;
+	russianRoulette: boolean;
+	readonly accumulationType: TextureDataType;
+	readonly isCompiling: boolean;
 	bounces: number;
 	transmissiveBounces: number;
 	filterGlossyFactor: number;

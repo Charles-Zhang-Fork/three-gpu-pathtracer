@@ -28,6 +28,25 @@ export class WebGLPathTracer {
 
 	}
 
+	get russianRoulette() {
+
+		return Boolean( this._pathTracer.material.defines.FEATURE_RUSSIAN_ROULETTE );
+
+	}
+
+	set russianRoulette( v ) {
+
+		this._pathTracer.material.setDefine( 'FEATURE_RUSSIAN_ROULETTE', v ? 1 : 0 );
+
+	}
+
+	// the type the samples are added up in: 32-bit floats where the driver draws into them, else 16-bit
+	get accumulationType() {
+
+		return this._pathTracer.target.texture.type;
+
+	}
+
 	get transmissiveBounces() {
 
 		return this._pathTracer.material.transmissiveBounces;

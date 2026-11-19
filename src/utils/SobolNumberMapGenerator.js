@@ -1,4 +1,5 @@
 import { FloatType, NearestFilter, NoBlending, RGBAFormat, Vector2, WebGLRenderTarget } from 'three';
+import { renderableFloatType } from './renderableFloatType.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MaterialBase } from '../materials/MaterialBase.js';
 import { sobol_common, sobol_point_generation } from '../shader/rand/sobol.glsl.js';
@@ -55,7 +56,7 @@ export class SobolNumberMapGenerator {
 
 		const target = new WebGLRenderTarget( dimensions, dimensions, {
 
-			type: FloatType,
+			type: renderableFloatType( renderer ),
 			format: RGBAFormat,
 			minFilter: NearestFilter,
 			magFilter: NearestFilter,
