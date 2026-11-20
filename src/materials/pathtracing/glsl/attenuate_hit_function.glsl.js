@@ -76,6 +76,13 @@ export const attenuate_hit_function = /* glsl */`
 
 				}
 
+				// a shadow catcher takes shadows; it casts none
+				if ( material.shadowCatcher ) {
+
+					continue;
+
+				}
+
 				vec2 uv = textureSampleBarycoord( attributesArray, ATTR_UV, surfaceHit.barycoord, surfaceHit.faceIndices.xyz ).xy;
 				vec4 vertexColor = textureSampleBarycoord( attributesArray, ATTR_COLOR, surfaceHit.barycoord, surfaceHit.faceIndices.xyz );
 
