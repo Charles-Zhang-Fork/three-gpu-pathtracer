@@ -11,6 +11,22 @@ f90    : Amount of light reflected at grazing angles
 
 export const bsdf_functions = /* glsl */`
 
+	// The share of light the specular layer reflects from direction wo, over all directions (its directional albedo), as
+	// three's raster approximates it for image based lighting (DFGApprox, Karis' mobile fit). What it reflects does not
+	// reach the diffuse layer under it, so a smooth dielectric seen at a grazing angle shows its reflection rather than
+	// its colour, as it does in three's raster and in Cycles.
+	vec3 specularAlbedo( float cosTheta, SurfaceRecord surf ) {
+
+		const vec4 c0 = vec4( - 1.0, - 0.0275, - 0.572, 0.022 );
+		const vec4 c1 = vec4( 1.0, 0.0425, 1.04, - 0.04 );
+		vec4 r = surf.filteredRoughness * c0 + c1;
+		float a004 = min( r.x * r.x, exp2( - 9.28 * max( cosTheta, 0.0 ) ) ) * r.x + r.y;
+		vec2 fab = vec2( - 1.04, 1.04 ) * a004 + r.zw;
+		vec3 f0Color = surf.f0 * surf.specularColor * surf.specularIntensity;
+		return clamp( f0Color * fab.x + surf.specularIntensity * fab.y, 0.0, 1.0 );
+
+	}
+
 	// diffuse
 	float diffuseEval( vec3 wo, vec3 wi, vec3 wh, SurfaceRecord surf, inout vec3 color ) {
 
@@ -26,9 +42,9 @@ export const bsdf_functions = /* glsl */`
 
 		// TODO: subsurface approx?
 
-		// float F = evaluateFresnelWeight( dot( wo, wh ), surf.eta, surf.f0 );
-		float F = disneyFresnel( wo, wi, wh, surf.f0, surf.eta, surf.metalness );
-		color = ( 1.0 - F ) * transFactor * metalFactor * wi.z * surf.color * ( retro + lambert ) / PI;
+		// the light the specular layer keeps from reaching the diffuse layer: what it reflects from the view direction
+		vec3 specularKept = specularAlbedo( wo.z, surf );
+		color = ( 1.0 - specularKept ) * transFactor * metalFactor * wi.z * surf.color * ( retro + lambert ) / PI;
 
 		return wi.z / PI;
 
@@ -250,7 +266,14 @@ export const bsdf_functions = /* glsl */`
 		float fEstimate = disneyFresnel( wo, wi, wh, surf.f0, surf.eta, surf.metalness );
 
 		float transSpecularProb = mix( max( 0.25, fEstimate ), 1.0, metalness );
-		float diffSpecularProb = 0.5 + 0.5 * metalness;
+		// choose between the diffuse and specular lobes by what each returns from this view, as Cycles does, rather than
+		// half and half: a glossy dark surface spends its paths on its reflection and a matt light one on its colour. Each
+		// keeps at least a tenth, so neither is starved where the estimate is off; metals stay all specular.
+		const vec3 LUMA = vec3( 0.2126, 0.7152, 0.0722 );
+		float specularShare = dot( specularAlbedo( wo.z, surf ), LUMA );
+		float diffuseShare = ( 1.0 - specularShare ) * dot( surf.color, LUMA );
+		float dielectricSpecularProb = clamp( specularShare / max( specularShare + diffuseShare, 1e-4 ), 0.1, 0.9 );
+		float diffSpecularProb = mix( dielectricSpecularProb, 1.0, metalness );
 
 		diffuseWeight = ( 1.0 - transmission ) * ( 1.0 - diffSpecularProb );
 		specularWeight = transmission * transSpecularProb + ( 1.0 - transmission ) * diffSpecularProb;
