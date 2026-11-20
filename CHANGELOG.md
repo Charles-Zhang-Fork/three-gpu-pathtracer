@@ -5,10 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- WebGLPathTracer: The diffuse and specular lobes are chosen by what each returns from the view direction, rather than half and half, so glossy surfaces converge two to three times faster.
+
 ### Added
 - WebGLPathTracer: A mesh with a ShadowMaterial is traced as a shadow catcher. Seen directly, it shows the background with the shadow laid over it as the raster ShadowMaterial lays it, its colour at its opacity where the lights and the environment are blocked; it casts no shadow and other rays pass through it.
 
 ### Fixed
+- WebGLPathTracer: The diffuse layer is weighted by what the specular layer does not reflect from the view direction, as three's raster and Cycles weight it, so a smooth dielectric seen at a grazing angle shows its reflection rather than its colour.
 - WebGLPathTracer: A colour background is shown at its own colour whatever the scene's background intensity, as three draws it, rather than going black at an intensity of 0.
 - WebGLPathTracer: A mesh with an array of materials no longer shifts the materials of every mesh merged after it. Each of its geometry groups keeps its own material, and the merged geometry's groups are rebuilt rather than added to on every update.
 
