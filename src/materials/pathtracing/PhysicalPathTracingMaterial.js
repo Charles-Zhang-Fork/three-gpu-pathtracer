@@ -292,6 +292,7 @@ export class PhysicalPathTracingMaterial extends MaterialBase {
 				${ RenderGLSL.trace_scene_function }
 				${ RenderGLSL.attenuate_hit_function }
 				${ RenderGLSL.direct_light_contribution_function }
+				${ RenderGLSL.shadow_catcher_function }
 				${ RenderGLSL.get_surface_record_function }
 
 				void main() {
@@ -433,6 +434,28 @@ export class PhysicalPathTracingMaterial extends MaterialBase {
 						}
 
 						#endif
+
+						// a shadow catcher (ShadowMaterial): seen directly, the background with the shadow laid over it as the
+						// raster ShadowMaterial lays it, its colour at its opacity where the light is blocked; to every
+						// other ray it is not there
+						if ( material.shadowCatcher ) {
+
+							vec3 catcherNormal = dot( surfaceHit.faceNormal, ray.direction ) > 0.0 ? - surfaceHit.faceNormal : surfaceHit.faceNormal;
+							if ( state.firstRay || state.transmissiveRay ) {
+
+								vec3 catcherPoint = stepRayOrigin( ray.origin, ray.direction, catcherNormal, surfaceHit.dist );
+								float shadow = material.opacity * ( 1.0 - shadowCatcherVisibility( state, catcherPoint, catcherNormal ) );
+								vec3 background = sampleBackground( ray.direction, rand2( 2 ) );
+								gl_FragColor.rgb += mix( background, material.color, shadow ) * state.throughputColor;
+								gl_FragColor.a = mix( backgroundAlpha, 1.0, shadow );
+								break;
+
+							}
+
+							ray.origin = stepRayOrigin( ray.origin, ray.direction, - catcherNormal, surfaceHit.dist );
+							continue;
+
+						}
 
 						// early out if this is a matte material
 						if ( material.matte && state.firstRay ) {

@@ -283,7 +283,8 @@ export class WebGLPathTracer {
 
 		// update scene background
 		material.backgroundBlur = scene.backgroundBlurriness;
-		material.backgroundIntensity = scene.backgroundIntensity ?? 1;
+		// as three draws it, a colour background is shown as it is, whatever the background intensity
+		material.backgroundIntensity = scene.background && scene.background.isColor ? 1 : ( scene.backgroundIntensity ?? 1 );
 		material.backgroundRotation.makeRotationFromEuler( scene.backgroundRotation ).invert();
 		if ( scene.background === null ) {
 
