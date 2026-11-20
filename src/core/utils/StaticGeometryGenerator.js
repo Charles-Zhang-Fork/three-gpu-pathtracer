@@ -50,6 +50,59 @@ function getMaterials( meshes ) {
 
 }
 
+// Gives the merged geometry one group for each run of triangles that shares a material, numbered in the order
+// `getMaterials` lists materials. A mesh with an array of materials contributes one group per geometry group, so the
+// triangles of each of its groups keep their own material rather than all taking the slot of the mesh's index.
+function setMaterialGroups( target, meshes, geometries ) {
+
+	target.clearGroups();
+	let offset = 0;
+	let materialOffset = 0;
+	for ( let i = 0, l = meshes.length; i < l; i ++ ) {
+
+		const mesh = meshes[ i ];
+		const geometry = geometries[ i ];
+		const count = geometry.index ? geometry.index.count : geometry.attributes.position.count;
+		if ( Array.isArray( mesh.material ) ) {
+
+			const slots = mesh.material.length;
+			const groups = mesh.geometry.groups;
+			if ( groups.length === 0 ) {
+
+				if ( slots > 0 ) target.addGroup( offset, count, materialOffset );
+
+			} else {
+
+				for ( let g = 0, gl = groups.length; g < gl; g ++ ) {
+
+					const group = groups[ g ];
+					const start = Math.min( group.start, count );
+					const end = Math.min( group.start + group.count, count );
+					if ( end > start && group.materialIndex < slots ) {
+
+						target.addGroup( offset + start, end - start, materialOffset + group.materialIndex );
+
+					}
+
+				}
+
+			}
+
+			materialOffset += slots;
+
+		} else {
+
+			target.addGroup( offset, count, materialOffset );
+			materialOffset ++;
+
+		}
+
+		offset += count;
+
+	}
+
+}
+
 function mergeGeometryList( geometries, target, options ) {
 
 	// If we have no geometry to merge then provide an empty geometry.
@@ -272,6 +325,13 @@ export class StaticGeometryGenerator {
 
 		// If we have no geometry to merge then provide an empty geometry.
 		mergeGeometryList( mergeGeometry, targetGeometry, { useGroups, forceUpdate, skipAssigningAttributes, overwriteIndex } );
+
+		// one group per material slot, indexing the flattened list `getMaterials` returns
+		if ( useGroups ) {
+
+			setMaterialGroups( targetGeometry, meshes, mergeGeometry );
+
+		}
 
 		// force update means the attribute buffer lengths have changed
 		if ( forceUpdate ) {

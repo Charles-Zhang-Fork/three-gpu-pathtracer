@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- WebGLPathTracer: A mesh with an array of materials no longer shifts the materials of every mesh merged after it. Each of its geometry groups keeps its own material, and the merged geometry's groups are rebuilt rather than added to on every update.
+
 ## [0.0.28] - 2026.11.02
 ### Added
 - WebGPUPathTracer: "setBVHWorker" and "setSceneAsync" to build the mesh BVHs in workers without blocking the page.
